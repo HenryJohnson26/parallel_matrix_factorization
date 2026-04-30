@@ -1,0 +1,5 @@
+experiment,mode,threads,requested_ratings,actual_ratings,users,items,seconds,speedup,efficiency,final_rmse
+strong_scaling,omp_all_dynamic,1,1000000,1000000,6040,3706,17.4395,1,1,0.600305
+strong_scaling,omp_all_dynamic,2,1000000,1000000,6040,3706,7.33424,2.37782,1.18891,0.600305
+strong_scaling,omp_all_dynamic,4,1000000,1000000,6040,3706,3.25445,5.35867,1.33967,0.600305
+strong_scaling,omp_all_dynamic,8,1000000,1000000,6040,3706,2.08881,8.349,1.04363,0.600305

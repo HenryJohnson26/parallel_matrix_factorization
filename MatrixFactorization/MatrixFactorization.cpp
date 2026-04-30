@@ -1,3 +1,4 @@
+#include "Benchmark.h"
 #include "CCDPP.h"
 #include "RatingLoader.h"
 #include "SparseRatings.h"
@@ -9,70 +10,278 @@
 #include <tuple>
 #include <vector>
 
+namespace
+{
+    int parseIntOrDefault(char* value, int defaultValue)
+    {
+        if (value == nullptr)
+        {
+            return defaultValue;
+        }
+
+        return std::stoi(value);
+    }
+
+    double parseDoubleOrDefault(char* value, double defaultValue)
+    {
+        if (value == nullptr)
+        {
+            return defaultValue;
+        }
+
+        return std::stod(value);
+    }
+
+    void printUsage()
+    {
+        std::cout
+            << "Usage:\n"
+            << "\n"
+            << "  Train normally:\n"
+            << "    CCDPlusPlus.exe train <ratings-file> [max-ratings] [rank] [outer] [inner] [threads]\n"
+            << "\n"
+            << "  Strong scaling benchmark:\n"
+            << "    CCDPlusPlus.exe bench-strong <ratings-file> [max-ratings] [rank] [outer] [inner] [max-threads]\n"
+            << "\n"
+            << "  Weak scaling benchmark:\n"
+            << "    CCDPlusPlus.exe bench-weak <ratings-file> [ratings-per-thread] [rank] [outer] [inner] [max-threads]\n"
+            << "\n"
+            << "  Ablation benchmark:\n"
+            << "    CCDPlusPlus.exe bench-ablation <ratings-file> [max-ratings] [rank] [outer] [inner] [threads]\n"
+            << "\n"
+            << "Examples:\n"
+            << "    CCDPlusPlus.exe train C:\\\\data\\\\ml-1m\\\\ratings.dat 1000000 40 5 5 8\n"
+            << "    CCDPlusPlus.exe bench-strong C:\\\\data\\\\ml-1m\\\\ratings.dat 1000000 40 3 5 8\n"
+            << "    CCDPlusPlus.exe bench-weak C:\\\\data\\\\ml-1m\\\\ratings.dat 125000 40 3 5 8\n"
+            << "    CCDPlusPlus.exe bench-ablation C:\\\\data\\\\ml-1m\\\\ratings.dat 1000000 40 3 5 8\n";
+    }
+
+    CCDPPConfig makeBaseConfig(
+        int rank,
+        int outerIterations,
+        int innerIterations,
+        int threads,
+        bool verbose)
+    {
+        CCDPPConfig cfg;
+        cfg.rank = rank;
+        cfg.lambda = 0.1;
+        cfg.outerIterations = outerIterations;
+        cfg.innerIterations = innerIterations;
+        cfg.useOpenMP = threads > 1;
+        cfg.numThreads = threads;
+        cfg.parallelVectorLoops = true;
+        cfg.dynamicScheduling = true;
+        cfg.dynamicChunkSize = 64;
+        cfg.computeRmseEachOuter = verbose;
+        cfg.verbose = verbose;
+
+        return cfg;
+    }
+
+    SparseRatings makeSparseFromLoaded(const LoadedRatings& loaded)
+    {
+        int maxUser = -1;
+        int maxItem = -1;
+
+        for (const auto& rating : loaded.ratings)
+        {
+            maxUser = std::max(maxUser, std::get<0>(rating));
+            maxItem = std::max(maxItem, std::get<1>(rating));
+        }
+
+        return SparseRatings(maxUser + 1, maxItem + 1, loaded.ratings);
+    }
+}
+
 int main(int argc, char* argv[])
 {
     try
     {
-        std::vector<std::tuple<int, int, double>> ratings;
-        int numUsers = 0;
-        int numItems = 0;
-
-        if (argc >= 2)
+        if (argc < 2)
         {
-            std::string filename = argv[1];
-            int maxRatings = -1;
+            printUsage();
+            return 0;
+        }
 
-            if (argc >= 3)
+        std::string command = argv[1];
+
+        if (command == "train")
+        {
+            if (argc < 3)
             {
-                maxRatings = std::stoi(argv[2]);
+                printUsage();
+                return 1;
             }
 
+            std::string filename = argv[2];
+
+            int maxRatings = argc >= 4 ? std::stoi(argv[3]) : -1;
+            int rank = argc >= 5 ? std::stoi(argv[4]) : 2;
+            int outerIterations = argc >= 6 ? std::stoi(argv[5]) : 10;
+            int innerIterations = argc >= 7 ? std::stoi(argv[6]) : 5;
+            int threads = argc >= 8 ? std::stoi(argv[7]) : 1;
+
             LoadedRatings loaded = loadRatingsFromFile(filename, false, maxRatings);
+            SparseRatings data = makeSparseFromLoaded(loaded);
 
-            ratings = loaded.ratings;
-            numUsers = loaded.numUsers;
-            numItems = loaded.numItems;
+            CCDPPConfig cfg = makeBaseConfig(
+                rank,
+                outerIterations,
+                innerIterations,
+                threads,
+                true);
 
-            std::cout << "Loaded ratings from file: " << filename << "\n";
+            CCDPP model(cfg);
+            model.fit(data);
+
+            std::cout << "\nFirst few predictions for observed ratings:\n";
+
+            int count = std::min<int>(20, static_cast<int>(data.entries.size()));
+
+            for (int index = 0; index < count; ++index)
+            {
+                const ObservedEntry& entry = data.entries[index];
+
+                std::cout << "user " << entry.user
+                    << ", item " << entry.item
+                    << ", actual " << entry.rating
+                    << ", predicted " << model.predict(entry.user, entry.item)
+                    << "\n";
+            }
+
+            return 0;
         }
-        else
+
+        if (command == "bench-strong")
         {
-            std::cout << "No input file provided. Using small hardcoded test matrix.\n";
+            if (argc < 3)
+            {
+                printUsage();
+                return 1;
+            }
 
-            ratings = {
-                {0, 0, 5.0}, {0, 1, 3.0}, {0, 3, 1.0},
-                {1, 0, 4.0}, {1, 3, 1.0},
-                {2, 0, 1.0}, {2, 1, 1.0}, {2, 3, 5.0}, {2, 4, 4.0},
-                {3, 1, 1.0}, {3, 4, 5.0}
-            };
+            std::string filename = argv[2];
 
-            numUsers = 4;
-            numItems = 5;
+            int maxRatings = argc >= 4 ? std::stoi(argv[3]) : 1000000;
+            int rank = argc >= 5 ? std::stoi(argv[4]) : 40;
+            int outerIterations = argc >= 6 ? std::stoi(argv[5]) : 3;
+            int innerIterations = argc >= 7 ? std::stoi(argv[6]) : 5;
+            int maxThreads = argc >= 8 ? std::stoi(argv[7]) : 8;
+
+            LoadedRatings loaded = loadRatingsFromFile(filename, false, -1);
+
+            CCDPPConfig baseConfig = makeBaseConfig(
+                rank,
+                outerIterations,
+                innerIterations,
+                1,
+                false);
+
+            std::vector<BenchmarkRow> rows = runStrongScalingBenchmark(
+                loaded,
+                maxRatings,
+                baseConfig,
+                maxThreads);
+
+            writeBenchmarkCsv("strong_scaling.csv", rows);
+            std::cout << "Wrote strong_scaling.csv\n";
+
+            return 0;
         }
 
-        SparseRatings data(numUsers, numItems, ratings);
-
-        int rank = 2;
-        double lambda = 0.1;
-        int innerIterations = 5;
-        int outerIterations = 10;
-
-        CCDPP model(rank, lambda, innerIterations, outerIterations);
-        model.fit(data);
-
-        std::cout << "\nFirst few predictions for observed ratings:\n";
-
-        int count = std::min<int>(20, static_cast<int>(data.entries.size()));
-
-        for (int index = 0; index < count; ++index)
+        if (command == "bench-weak")
         {
-            const ObservedEntry& entry = data.entries[index];
+            if (argc < 3)
+            {
+                printUsage();
+                return 1;
+            }
 
-            std::cout << "user " << entry.user
-                << ", item " << entry.item
-                << ", actual " << entry.rating
-                << ", predicted " << model.predict(entry.user, entry.item)
-                << "\n";
+            std::string filename = argv[2];
+
+            int ratingsPerThread = argc >= 4 ? std::stoi(argv[3]) : 125000;
+            int rank = argc >= 5 ? std::stoi(argv[4]) : 40;
+            int outerIterations = argc >= 6 ? std::stoi(argv[5]) : 3;
+            int innerIterations = argc >= 7 ? std::stoi(argv[6]) : 5;
+            int maxThreads = argc >= 8 ? std::stoi(argv[7]) : 8;
+
+            LoadedRatings loaded = loadRatingsFromFile(filename, false, -1);
+
+            CCDPPConfig baseConfig = makeBaseConfig(
+                rank,
+                outerIterations,
+                innerIterations,
+                1,
+                false);
+
+            std::vector<BenchmarkRow> rows = runWeakScalingBenchmark(
+                loaded,
+                ratingsPerThread,
+                baseConfig,
+                maxThreads);
+
+            writeBenchmarkCsv("weak_scaling.csv", rows);
+            std::cout << "Wrote weak_scaling.csv\n";
+
+            return 0;
+        }
+
+        if (command == "bench-ablation")
+        {
+            if (argc < 3)
+            {
+                printUsage();
+                return 1;
+            }
+
+            std::string filename = argv[2];
+
+            int maxRatings = argc >= 4 ? std::stoi(argv[3]) : 1000000;
+            int rank = argc >= 5 ? std::stoi(argv[4]) : 40;
+            int outerIterations = argc >= 6 ? std::stoi(argv[5]) : 3;
+            int innerIterations = argc >= 7 ? std::stoi(argv[6]) : 5;
+            int threads = argc >= 8 ? std::stoi(argv[7]) : 8;
+
+            LoadedRatings loaded = loadRatingsFromFile(filename, false, -1);
+
+            CCDPPConfig baseConfig = makeBaseConfig(
+                rank,
+                outerIterations,
+                innerIterations,
+                threads,
+                false);
+
+            std::vector<BenchmarkRow> rows = runAblationBenchmark(
+                loaded,
+                maxRatings,
+                baseConfig,
+                threads);
+
+            writeBenchmarkCsv("ablation.csv", rows);
+            std::cout << "Wrote ablation.csv\n";
+
+            return 0;
+        }
+
+        // Backward-compatible behavior:
+        // If the first argument is not a recognized command, treat it as a ratings file.
+        {
+            std::string filename = argv[1];
+            int maxRatings = argc >= 3 ? std::stoi(argv[2]) : -1;
+
+            LoadedRatings loaded = loadRatingsFromFile(filename, false, maxRatings);
+            SparseRatings data = makeSparseFromLoaded(loaded);
+
+            CCDPPConfig cfg = makeBaseConfig(
+                2,
+                10,
+                5,
+                1,
+                true);
+
+            CCDPP model(cfg);
+            model.fit(data);
         }
     }
     catch (const std::exception& ex)

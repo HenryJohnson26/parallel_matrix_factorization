@@ -1,0 +1,5 @@
+experiment,mode,threads,requested_ratings,actual_ratings,users,items,seconds,speedup,efficiency,final_rmse
+ablation,serial_flat_factors,1,1000000,1000000,6040,3706,16.0032,1,1,0.600305
+ablation,omp_uv_static,8,1000000,1000000,6040,3706,4.93806,3.24079,0.405099,0.600305
+ablation,omp_all_static,8,1000000,1000000,6040,3706,4.82537,3.31648,0.41456,0.600305
+ablation,omp_all_dynamic,8,1000000,1000000,6040,3706,2.31014,6.9274,0.865925,0.600305

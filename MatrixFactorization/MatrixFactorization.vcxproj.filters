@@ -27,6 +27,9 @@
     <ClCompile Include="RatingLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Benchmark.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rating.h">
@@ -41,5 +44,13 @@
     <ClInclude Include="RatingLoader.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Benchmark.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\Downloads\ratings.dat">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

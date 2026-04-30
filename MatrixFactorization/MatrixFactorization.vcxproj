@@ -128,16 +128,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Benchmark.cpp" />
     <ClCompile Include="CCDPP.cpp" />
     <ClCompile Include="MatrixFactorization.cpp" />
     <ClCompile Include="RatingLoader.cpp" />
     <ClCompile Include="SparseRatings.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Benchmark.h" />
     <ClInclude Include="CCDPP.h" />
     <ClInclude Include="RatingLoader.h" />
     <ClInclude Include="Rating.h" />
     <ClInclude Include="SparseRatings.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\Downloads\ratings.dat" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
