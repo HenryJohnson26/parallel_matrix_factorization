@@ -4,10 +4,10 @@
 
 #include <vector>
 
-class CCDPP
+class ParallelCCDPP
 {
 public:
-    CCDPP(
+    ParallelCCDPP(
         int rank,
         double lambda,
         int innerIterations,

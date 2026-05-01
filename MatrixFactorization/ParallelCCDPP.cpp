@@ -1,11 +1,16 @@
-#include "CCDPP.h"
+#include "ParallelCCDPP.h"
 
 #include <cmath>
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <omp.h>
 
-CCDPP::CCDPP(
+#define U_CHUNK_SIZE 4
+#define V_CHUNK_SIZE 4
+
+
+ParallelCCDPP::ParallelCCDPP(
     int rank,
     double lambdaValue,
     int innerIterationCount,
@@ -36,7 +41,7 @@ CCDPP::CCDPP(
     }
 }
 
-void CCDPP::fit(SparseRatings& data)
+void ParallelCCDPP::fit(SparseRatings& data)
 {
     initializeFactors(data.numUsers, data.numItems);
 
@@ -58,7 +63,7 @@ void CCDPP::fit(SparseRatings& data)
     }
 }
 
-double CCDPP::predict(int user, int item) const
+double ParallelCCDPP::predict(int user, int item) const
 {
     double result = 0.0;
 
@@ -70,7 +75,7 @@ double CCDPP::predict(int user, int item) const
     return result;
 }
 
-double CCDPP::trainingRmse(const SparseRatings& data) const
+double ParallelCCDPP::trainingRmse(const SparseRatings& data) const
 {
     double sumSquaredError = 0.0;
 
@@ -82,7 +87,7 @@ double CCDPP::trainingRmse(const SparseRatings& data) const
     return std::sqrt(sumSquaredError / static_cast<double>(data.nonzeroCount()));
 }
 
-void CCDPP::initializeFactors(int numUsers, int numItems)
+void ParallelCCDPP::initializeFactors(int numUsers, int numItems)
 {
     W.assign(numUsers, std::vector<double>(k, 0.0));
     H.assign(numItems, std::vector<double>(k, 0.0));
@@ -101,7 +106,7 @@ void CCDPP::initializeFactors(int numUsers, int numItems)
     }
 }
 
-void CCDPP::updateOneFeature(SparseRatings& data, int t)
+void ParallelCCDPP::updateOneFeature(SparseRatings& data, int t)
 {
     std::vector<double> u(data.numUsers, 0.0);
     std::vector<double> v(data.numItems, 0.0);
@@ -117,8 +122,11 @@ void CCDPP::updateOneFeature(SparseRatings& data, int t)
     }
 
     // Construct R_hat = R + W[:, t] * H[:, t]^T.
-    for (ObservedEntry& entry : data.entries)
+    #pragma omp parallel for schedule(dynamic)
+    // for (ObservedEntry& entry : data.entries)
+    for (int i = 0; i < (int)data.entries.size(); i++)
     {
+        ObservedEntry& entry = data.entries[i];
         entry.residual += u[entry.user] * v[entry.item];
     }
 
@@ -130,28 +138,34 @@ void CCDPP::updateOneFeature(SparseRatings& data, int t)
     }
 
     // Store the updated feature column.
+    #pragma omp parallel for schedule(dynamic)
     for (int user = 0; user < data.numUsers; ++user)
     {
         W[user][t] = u[user];
     }
 
+    #pragma omp parallel for schedule(dynamic)
     for (int item = 0; item < data.numItems; ++item)
     {
         H[item][t] = v[item];
     }
 
     // Convert R_hat back into the actual residual R.
-    for (ObservedEntry& entry : data.entries)
+    #pragma omp parallel for schedule(dynamic)
+    // for (ObservedEntry& entry : data.entries)
+    for (int i = 0; i < (int)data.entries.size(); i++)
     {
+        ObservedEntry& entry = data.entries[i];
         entry.residual -= u[entry.user] * v[entry.item];
     }
 }
 
-void CCDPP::updateU(
+void ParallelCCDPP::updateU(
     const SparseRatings& data,
     std::vector<double>& u,
     const std::vector<double>& v)
 {
+        #pragma omp parallel for schedule(dynamic, U_CHUNK_SIZE)
     for (int user = 0; user < data.numUsers; ++user)
     {
         double numerator = 0.0;
@@ -170,11 +184,12 @@ void CCDPP::updateU(
     }
 }
 
-void CCDPP::updateV(
+void ParallelCCDPP::updateV(
     const SparseRatings& data,
     const std::vector<double>& u,
     std::vector<double>& v)
 {
+    #pragma omp parallel for schedule(dynamic, V_CHUNK_SIZE)
     for (int item = 0; item < data.numItems; ++item)
     {
         double numerator = 0.0;
