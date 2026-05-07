@@ -1,0 +1,112 @@
+\documentclass[sigconf,authorversion,nonacm]{acmart}
+
+\settopmatter{printacmref=false}
+\usepackage{xcolor}
+
+
+%%
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+\begin{document}
+
+\title{CSCI-563 Project Report: ``Group Name"}
+
+\author{Jane Doe}
+\affiliation{%
+ \institution{Colorado School of Mines}
+ \city{Golden}
+ \state{CO}
+ \country{USA}
+ }
+
+\author{John Doe}
+\affiliation{%
+ \institution{Colorado School of Mines}
+ \city{Golden}
+ \state{CO}
+ \country{USA}
+}
+
+\maketitle
+
+
+
+
+
+\section{Introduction of the Paper and the Targeted Problem {\small {[10 pts]}}}
+Introduce the paper and the topic you have selected. Include a brief summary of the paper and its contributions. State the key idea(s), solution(s) and contribution(s) of the paper and briefly talk about the technical details of their approach. Explain what the domain is, the application/algorithm being targeted, the problem (i.e., parallelization of the problem) is being solved, and why parallelization is needed. 
+
+\section{Serial Implementation and Analysis {\small {[10 pts]}}}
+
+Explain your serial implementation. Show and analyze the serial performance, including but not limited to:  big O analysis of the original algorithm, breakdown of different regions of the algorithm, which regions are the most computationally expensive, ratio of the parallelizable region and Amdhal’s law analysis and memory footprint analysis etc. 
+
+Also list the prompt you use for the serial implementation.
+
+\section{Parallel Implementation {\small {[25 pts]}}}
+
+First explain your parallelization strategy, similar to how you have presented in the class. Provide a simplified pseudocode for serial and parallel implementations of the algorithm you are targeting. Explain algorithmic changes that needed to be made over the original serial algorithm. Denote deviations from the paper (if any).
+
+Then, briefly explain your implementation. Include potential OMP or CUDA specific primitives/calls/methods that you leveraged (e.g., OMP tasks, CUDA shared memory, synchronizations needed etc.). List API libraries and tools (e.g., BLAS, CUDNN, numactl, cpuset etc.) you have used. Cover implementation challenges you have encountered. (e.g., device restrictions, CUDA/OMP version specific constraints etc.)								
+
+Finally, list the optimizations implemented and their goals. These optimizations could rely on the basic optimizations we discussed in the class (e.g., the way you launch your threads and you partition/decompose your data, your sync points, memory access reduction techniques etc.) and/or algorithm specific optimizations discussed in the paper.
+
+In this section, focus on implementation only and leave performance analysis to the corresponding section. The grade of this section will also include the review of your code submitted. 
+
+\section{Evaluation Strategy {\small {[5 pts]}}}
+Identify your performance baseline (e.g., how is your operation quantified, what versions of the algorithm you will be comparing (if any)) List other metrics (e.g., input data size, number of steps in the algorithm, etc.) your performance analysis  relies on and how you vary them to observe the changing performance behavior. Also explain how you characterize and monitor potential parallelization overheads, additional steps being introduced by the parallel algorithm, increased memory access footprint and other performance concerns introduced by your parallelization. This explanation should avoid the performance analysis itself and focus on the methodology, including the use of profiling tools, program specific instrumentation, and how you will translate measured metrics by such tools to the performance analysis presented. 
+
+\section{Performance Analysis {\small {[25 pts]}}}
+
+\subsection{Analysis}
+In this section, you will present your results and performance analysis in the categories below and .
+
+\textbf{Speedup}: Using your previously identified metrics and baseline, report your absolute performance values and the speedups you have achieved. Explore various parameters of your parallelization (e.g., tile size) and report resulting speedups. Compare your results with the numbers reported in the paper.
+You could also merge this category with the \textit{scaling} category below.
+
+
+\textbf{Scaling}: Depending on the platform (e.g., CUDA vs OMP), explore the strong or weak scaling behavior (\href{https://hpc-wiki.info/hpc/Scaling}) of your implementation. Report on parallel efficiency.
+
+\textbf{Bottleneck analysis:} Identify performance bottlenecks. Potential bottleneck sources may include but are not limited to memory bandwidth, synchronization, atomics, or load imbalance.
+
+\textbf{Ablation study:} Show the incremental benefits of the 3+ optimizations through an ablation study. In this study, compare the benefits of the optimizations by incrementally enabling each optimization. E.g., your analysis will compare vanilla vs. vanilla+optimizations(A) vs. vanilla+optimizations(A+B) vs. vanilla+optimizations(A+B+C).
+
+\subsection{Formatting and methodology}
+
+When presenting your results, your charts should have the varying factor in the x axis and the resulting metrics on the y axis. If you are comparing multiple approaches, you could use multiple series. 
+
+For each experiment/analysis category above:
+\begin{itemize}
+    \item Insert a chart/figure/table or more
+    \item Explain the information that chart/figure/table gives
+    \item Interpret the results. 
+\end{itemize}
+
+There is no min/max limit on the charts. Try to logically group the information if you could. 
+
+In this section, you should also talk about your methodology, such as how  you set up your experiments, how many iterations of executions have you made, how you eliminated the noise from your results, etc. 
+
+ I expect this to be the most detailed section of your report.
+
+\section{Conclusion} 
+Conclude here.
+
+\section{Link to Source and other resources} 
+Please insert the public/private repository link that includes your implementation and scripts you have developed and your results. Also, if available, include links to other sources that you have used in your project.
+
+% \section{ {\small {[2 pts]}}}  
+% Write a brief paragraph on what you have learned ``new" regarding performance analysis and overall on ``parallelization". Please also include your honest, brief opinion on how this new knowledge could help your future career. Focus only on what you have learned. I will use this information to evaluate and improve the learning objectives of the class. 
+
+
+\section{Feedback {\small {[+1 pts (goes to participation)]}}}  
+In addition to anonymous and official class feedback (which I strongly encourage you to do), please include any other feedback and suggestions (format, content, evaluation, project, etc.) to improve the class.
+
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+
+
+\end{document}
