@@ -1,5 +1,6 @@
 #include "CCDPP.h"
 #include "ParallelCCDPP.h"
+#include "OptParallelCCDPP.h"
 #include "RatingLoader.h"
 #include "SparseRatings.h"
 #include <algorithm>
@@ -14,16 +15,22 @@ int main(int argc, char* argv[])
     try
     {
         bool useParallel = false;
+        bool useOpt = false;
         std::string filename;
         int maxRatings = -1;
+        int numThreads = 4;
+        float eps = 1e-3f;
 
         for (int i = 1; i < argc; ++i)
         {
             std::string arg = argv[i];
-            if (arg == "-p")       useParallel = true;
-            else if (arg == "-s")  useParallel = false;
-            else if (filename.empty()) filename = arg;
-            else maxRatings = std::stoi(arg);
+            if (arg == "-p")            useParallel = true;
+            else if (arg == "-s")       useParallel = false;
+            else if (arg == "-o")       { useOpt = true; useParallel = true; }
+            else if (arg == "-n")       numThreads = std::stoi(argv[++i]);
+            else if (arg == "-e")       eps = std::stof(argv[++i]);
+            else if (filename.empty())  filename = arg;
+            else                        maxRatings = std::stoi(arg);
         }
 
         std::vector<std::tuple<int, int, double>> ratings;
@@ -58,13 +65,10 @@ int main(int argc, char* argv[])
         int innerIterations = 5;
         int outerIterations = 10;
 
-        if (useParallel)
-        {
-            std::cout << "Using parallel implementation\n";
-            ParallelCCDPP model(rank, lambda, innerIterations, outerIterations);
-            model.fit(data);
+        int count = std::min<int>(20, static_cast<int>(data.entries.size()));
 
-            int count = std::min<int>(20, static_cast<int>(data.entries.size()));
+        auto printPredictions = [&](auto& model)
+        {
             std::cout << "\nFirst few predictions for observed ratings:\n";
             for (int i = 0; i < count; ++i)
             {
@@ -75,24 +79,28 @@ int main(int argc, char* argv[])
                     << ", predicted " << model.predict(entry.user, entry.item)
                     << "\n";
             }
+        };
+
+        if (useOpt)
+        {
+            std::cout << "Using optimized parallel implementation (threads=" << numThreads << ", eps=" << eps << ")\n";
+            OptParallelCCDPP model(rank, lambda, innerIterations, outerIterations, eps, numThreads);
+            model.fit(data);
+            printPredictions(model);
+        }
+        else if (useParallel)
+        {
+            std::cout << "Using parallel implementation\n";
+            ParallelCCDPP model(rank, lambda, innerIterations, outerIterations);
+            model.fit(data);
+            printPredictions(model);
         }
         else
         {
             std::cout << "Using serial implementation\n";
             CCDPP model(rank, lambda, innerIterations, outerIterations);
             model.fit(data);
-
-            int count = std::min<int>(20, static_cast<int>(data.entries.size()));
-            std::cout << "\nFirst few predictions for observed ratings:\n";
-            for (int i = 0; i < count; ++i)
-            {
-                const ObservedEntry& entry = data.entries[i];
-                std::cout << "user " << entry.user
-                    << ", item " << entry.item
-                    << ", actual " << entry.rating
-                    << ", predicted " << model.predict(entry.user, entry.item)
-                    << "\n";
-        }
+            printPredictions(model);
         }
     }
     catch (const std::exception& ex)

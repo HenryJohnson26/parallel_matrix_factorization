@@ -6,8 +6,8 @@
 #include <stdexcept>
 #include <omp.h>
 
-#define U_CHUNK_SIZE 4
-#define V_CHUNK_SIZE 4
+#define UCHUNK_SIZE 4
+#define VCHUNK_SIZE 4
 
 
 ParallelCCDPP::ParallelCCDPP(
@@ -165,7 +165,7 @@ void ParallelCCDPP::updateU(
     std::vector<double>& u,
     const std::vector<double>& v)
 {
-        #pragma omp parallel for schedule(dynamic, U_CHUNK_SIZE)
+        #pragma omp parallel for schedule(dynamic, UCHUNK_SIZE)
     for (int user = 0; user < data.numUsers; ++user)
     {
         double numerator = 0.0;
@@ -189,7 +189,7 @@ void ParallelCCDPP::updateV(
     const std::vector<double>& u,
     std::vector<double>& v)
 {
-    #pragma omp parallel for schedule(dynamic, V_CHUNK_SIZE)
+    #pragma omp parallel for schedule(dynamic, VCHUNK_SIZE)
     for (int item = 0; item < data.numItems; ++item)
     {
         double numerator = 0.0;
