@@ -1,6 +1,6 @@
 # Parallel matrix factorization for recommender systems
 ## Motivation
-We chose to implement the paper "Parallel matrix factorizaiton for recommender systems" by Yu et. al. 2013 due to its real likfe applications in every day use like product suggestions, and its large parallelizability.
+We chose to implement the paper "Parallel matrix factorizaiton for recommender systems" by Yu et. al. 2013 due to its real life applications in every day use like product suggestions, and its large parallelizability.
 
 ## Implementation
 Our implementation began with a serial implementation where we built CCDPP.cpp, MatrixFactorization.cpp, Rating.h, RatingLoader.cpp and sparseRatings.cpp. This layed the ground work for which we could build parallel and optimized implementations off of.
