@@ -55,6 +55,7 @@ void ParallelCCDPP::fit(SparseRatings& data)
     {
         for (int t = 0; t < k; ++t)
         {
+            // Main computation
             updateOneFeature(data, t);
         }
 
@@ -122,7 +123,7 @@ void ParallelCCDPP::updateOneFeature(SparseRatings& data, int t)
     }
 
     // Construct R_hat = R + W[:, t] * H[:, t]^T.
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic) // Require dynamic parallelism
     // for (ObservedEntry& entry : data.entries)
     for (int i = 0; i < (int)data.entries.size(); i++)
     {
@@ -138,13 +139,13 @@ void ParallelCCDPP::updateOneFeature(SparseRatings& data, int t)
     }
 
     // Store the updated feature column.
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)  // Require dynamic parallelism
     for (int user = 0; user < data.numUsers; ++user)
     {
         W[user][t] = u[user];
     }
 
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)  // Require dynamic parallelism
     for (int item = 0; item < data.numItems; ++item)
     {
         H[item][t] = v[item];
@@ -165,7 +166,7 @@ void ParallelCCDPP::updateU(
     std::vector<double>& u,
     const std::vector<double>& v)
 {
-        #pragma omp parallel for schedule(dynamic, UCHUNK_SIZE)
+    #pragma omp parallel for schedule(dynamic, UCHUNK_SIZE) //Paralell updates to U vectors, select loads with UCHUNCK_SIZE
     for (int user = 0; user < data.numUsers; ++user)
     {
         double numerator = 0.0;
@@ -189,7 +190,7 @@ void ParallelCCDPP::updateV(
     const std::vector<double>& u,
     std::vector<double>& v)
 {
-    #pragma omp parallel for schedule(dynamic, VCHUNK_SIZE)
+    #pragma omp parallel for schedule(dynamic, VCHUNK_SIZE) //Paralell updates to V vectors, select loads with VCHUNCK_SIZE
     for (int item = 0; item < data.numItems; ++item)
     {
         double numerator = 0.0;

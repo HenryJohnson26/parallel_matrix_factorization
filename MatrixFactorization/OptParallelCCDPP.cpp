@@ -9,7 +9,6 @@
 #define UCHUNK_SIZE 1
 #define VCHUNK_SIZE 1
 
-
 OptParallelCCDPP::OptParallelCCDPP(
     int rank,
     double lambdaValue,
@@ -20,8 +19,8 @@ OptParallelCCDPP::OptParallelCCDPP(
     lambda(lambdaValue),
     innerIterations(innerIterationCount),
     outerIterations(outerIterationCount),
-    n(n),
-    eps(eps)
+    n(n), //number of threads
+    eps(eps) //adaptive stopping variable
 {
     if (k <= 0)
     {
@@ -62,7 +61,7 @@ void OptParallelCCDPP::fit(SparseRatings& data)
     std::cout << "Observed ratings: " << data.nonzeroCount() << "\n\n";
 
     std::cout << "Initial training RMSE: " << trainingRmse(data) << "\n";
-    omp_set_num_threads(n);
+    omp_set_num_threads(n); // Set number of threads
     for (int outer = 0; outer < outerIterations; ++outer)
     {
         for (int t = 0; t < k; ++t)
@@ -195,6 +194,7 @@ float OptParallelCCDPP::updateU(
             denominator += vj * vj;
         }
 
+        // Calculation for adaptive stopping
         double u_new = numerator / denominator;
         double diff = u_new - u[user];
         d += (float)(diff * diff * denominator);
@@ -223,6 +223,7 @@ float OptParallelCCDPP::updateV(
             denominator += ui * ui;
         }
 
+        // Calculation for adaptive stopping
         double v_new = numerator / denominator;
         double diff = v_new - v[item];
         d += (float)(diff * diff * denominator);

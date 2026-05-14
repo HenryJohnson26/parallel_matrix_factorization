@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 
         int rank = 2;
         double lambda = 0.1;
-        int innerIterations = 5;
+        int innerIterations = 5; // Optimization: define the number of inner iterations
         int outerIterations = 10;
 
         for (int i = 1; i < argc; ++i)
