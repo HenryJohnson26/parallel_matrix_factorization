@@ -6,8 +6,8 @@
 #include <stdexcept>
 #include <omp.h>
 
-#define UCHUNK_SIZE 4
-#define VCHUNK_SIZE 4
+#define UCHUNK_SIZE 1
+#define VCHUNK_SIZE 1
 
 
 OptParallelCCDPP::OptParallelCCDPP(
